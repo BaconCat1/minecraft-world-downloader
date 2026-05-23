@@ -4,14 +4,14 @@ A Minecraft world downloader that works as a proxy server between the client and
 Now updated to 1.21.11!
 Currently prebuilt binaries are not availaible and you will need to build from source. Fortunately this is pretty easy and you can find instructions below. 
 
-Latest cross-platform jar (command-line support): [world-downloader.jar](https://github.com/mircokroon/minecraft-world-downloader/releases/latest/download/world-downloader.jar)
+Latest cross-platform jar (command-line support): [world-downloader.jar](https://github.com/BaconCat__/minecraft-world-downloader/releases/latest/download/world-downloader.jar)
 
 <img src="https://i.imgur.com/yH8SH5C.png">
 
 Instead of connecting to the server itself, connect to `localhost` in Minecraft to start downloading the world.
 <img src="https://i.imgur.com/wKMnXfq.png">
 
-If you run into any problems, check the [FAQ](https://github.com/mircokroon/minecraft-world-downloader/wiki/FAQ) page for some common issues. 
+If you run into any problems, check the [FAQ](https://github.com/BaconCat__/minecraft-world-downloader/wiki/FAQ) page for some common issues. 
 
 ### [Features](https://github.com/mircokroon/minecraft-world-downloader/wiki/Features)
 - Requires no client modifications and as such works with every game client, vanilla or not
@@ -27,7 +27,7 @@ If you run into any problems, check the [FAQ](https://github.com/mircokroon/mine
 - Minecraft version 1.12.2+ // 1.13.2+ // 1.14.1+ // 1.15.2+ // 1.16.2+ // 1.17+ // 1.18+ // 1.19.3+ // 1.20+ // 1.21+
 
 ### Command-line
-[Download](https://github.com/mircokroon/minecraft-world-downloader/releases/latest/download/world-downloader.jar) the cross-platform `world-downloader.jar` and run it using the command-line:
+[Download](https://github.com/BaconCat__/minecraft-world-downloader/releases/latest/download/world-downloader.jar) the cross-platform `world-downloader.jar` and run it using the command-line:
 
 ```
 java -jar world-downloader.jar
@@ -46,7 +46,7 @@ java -jar world-downloader.jar --no-gui -s address.to.server.com
 ### Running on Linux
 To easily download the latest release using the terminal, the following commands can be used:
 ```
-wget https://github.com/mircokroon/minecraft-world-downloader/releases/latest/download/world-downloader.jar
+wget https://github.com/BaconCat__/minecraft-world-downloader/releases/latest/download/world-downloader.jar
 java -jar world-downloader.jar -s address.to.server.com
 ```
 
@@ -83,7 +83,7 @@ java -Djdk.gtk.version=2 -jar world-downloader.jar
   
  Building the project manually can be done using Maven:
   ```
-  git clone https://github.com/mircokroon/minecraft-world-downloader
+  git clone https://github.com/BaconCat__/minecraft-world-downloader
   cd minecraft-world-downloader
   mvn package
   java -jar ./target/world-downloader.jar -s address.to.server.com
