@@ -5,6 +5,10 @@ import static util.ExceptionHandling.attempt;
 import fi.iki.elonen.NanoHTTPD;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -54,12 +58,14 @@ public class MicrosoftAuthServer extends NanoHTTPD {
         if (!session.getUri().equals(PATH)) {
             return null;
         }
+        Map<String, String> queryParams = parseQueryParams(session.getQueryParameterString());
+        String code = queryParams.get("code");
         if (authCodeHandler != null) {
-            String code = session.getQueryParameterString().replaceFirst("code=", "");
             int port = this.getListeningPort();
-
-            authCodeHandler.accept(code, port);
-            authCodeHandler = null;
+            if (code != null && !code.isBlank()) {
+                authCodeHandler.accept(code, port);
+                authCodeHandler = null;
+            }
         }
 
         this.stopDelayed();
@@ -97,5 +103,26 @@ public class MicrosoftAuthServer extends NanoHTTPD {
 
     public String getShortUrl() {
         return shortUrl;
+    }
+
+    private static Map<String, String> parseQueryParams(String queryString) {
+        Map<String, String> params = new HashMap<>();
+        if (queryString == null || queryString.isBlank()) {
+            return params;
+        }
+
+        for (String pair : queryString.split("&")) {
+            if (pair.isBlank()) {
+                continue;
+            }
+            String[] parts = pair.split("=", 2);
+            String key = URLDecoder.decode(parts[0], StandardCharsets.UTF_8);
+            String value = parts.length > 1
+                ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8)
+                : "";
+            params.put(key, value);
+        }
+
+        return params;
     }
 }

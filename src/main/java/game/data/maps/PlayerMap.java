@@ -35,6 +35,8 @@ public abstract class PlayerMap {
 
     public static PlayerMap getVersioned(int id) {
         return Config.versionReporter().select(PlayerMap.class,
+                Option.of(Version.V1_21_11, () -> new PlayerMap_1_21_11(id)),
+                Option.of(Version.V1_21, () -> new PlayerMap_1_21(id)),
                 Option.of(Version.V1_17, () -> new PlayerMap_1_17(id)),
                 Option.of(Version.V1_14, () -> new PlayerMap_1_14(id)),
                 Option.of(Version.V1_12, () -> new PlayerMap_1_12(id))
@@ -145,7 +147,9 @@ class Icon {
 
         boolean hasName = provider.readBoolean();
         if (hasName) {
-            icon.name = provider.readChat();
+            // 1.21.11 Prismarine: displayName is option anonymousNbt.
+            // Older versions also tolerate this because readNbtTag consumes the whole optional payload.
+            provider.readNbtTag();
         }
 
         // we need to read the full icon so we stay synchronized with the packet, even if we will discard it

@@ -50,6 +50,7 @@ public abstract class PacketHandler {
         int packetID = typeProvider.readVarInt();
 
         String packetType = protocol.get(packetID, isClientBound());
+
         PacketOperator operator = getOperators().getOrDefault(packetType, null);
         if (operator == null) {
             return true;

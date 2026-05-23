@@ -1,6 +1,7 @@
 package game.data.chunk.version;
 
 import config.Config;
+import config.Version;
 import game.data.chunk.BlockEntityRegistry;
 import game.data.chunk.ChunkSection;
 import game.data.chunk.palette.BlockState;
@@ -17,6 +18,7 @@ import packets.builder.PacketBuilder;
 import se.llbit.nbt.CompoundTag;
 import se.llbit.nbt.IntTag;
 import se.llbit.nbt.ListTag;
+import se.llbit.nbt.LongArrayTag;
 import se.llbit.nbt.NamedTag;
 import se.llbit.nbt.SpecificTag;
 import se.llbit.nbt.StringTag;
@@ -45,17 +47,20 @@ public class Chunk_1_18 extends Chunk_1_17 {
     @Override
     protected void parse(DataTypeProvider dataProvider) {
         raiseEvent("parse from packet");
+        DataTypeProvider provider = dataProvider;
 
-        parseHeightMaps(dataProvider);
+        parseHeightMaps(provider);
 
-        int size = dataProvider.readVarInt();
+        if (Config.versionReporter().isAtLeast(Version.V1_21_11)) {        }
+
+        int size = provider.readVarInt();
 
         try {
-            readChunkColumn(dataProvider.ofLength(size));
+            readChunkColumn(provider.ofLength(size));
 
-            parseBlockEntities(dataProvider);
+            parseBlockEntities(provider);
 
-            updateLight(dataProvider);
+            updateLight(provider);
         } catch (Exception ex) {
             // seems to happen when there's blocks above 192 under some conditions
             System.out.println("Issue parse chunk at " + location + ". Cause: " + ex.getMessage());
@@ -63,6 +68,126 @@ public class Chunk_1_18 extends Chunk_1_17 {
         }
 
         afterParse();
+    }
+
+    @Override
+    protected void parseHeightMaps(DataTypeProvider dataProvider) {
+        if (Config.versionReporter().isAtLeast(Version.V1_21_11)) {
+            heightMap = readHeightmapsMap(dataProvider);            return;
+        }
+
+        SpecificTag tag = dataProvider.readNbtTag();
+        heightMap = tag;
+    }
+
+    private CompoundTag readHeightmapsMap(DataTypeProvider dataProvider) {
+        CompoundTag map = new CompoundTag();
+
+        int count = dataProvider.readVarInt();
+        for (int i = 0; i < count; i++) {
+            int type = dataProvider.readVarInt();
+            int longCount = dataProvider.readVarInt();
+            long[] data = dataProvider.readLongArray(longCount);
+
+            map.add(heightmapName(type), new LongArrayTag(data));
+        }
+
+        return map;
+    }
+
+    private String heightmapName(int type) {
+        return switch (type) {
+            case 0 -> "WORLD_SURFACE_WG";
+            case 1 -> "WORLD_SURFACE";
+            case 2 -> "OCEAN_FLOOR_WG";
+            case 3 -> "OCEAN_FLOOR";
+            case 4 -> "MOTION_BLOCKING";
+            case 5 -> "MOTION_BLOCKING_NO_LEAVES";
+            default -> "UNKNOWN_" + type;
+        };
+    }
+
+    private ProviderSelection selectProviderForChunk(DataTypeProvider provider) {
+        DataTypeProvider withHeightmaps = provider.copyAtPosition();
+        if (hasValidChunkSizeAfterHeightmaps(withHeightmaps)) {
+            return new ProviderSelection(withHeightmaps, false);
+        }
+
+        DataTypeProvider withoutHeightmaps = provider.copyAtPosition();
+        int size = withoutHeightmaps.readVarInt();
+        if (isValidChunkSize(size, withoutHeightmaps)) {
+            return new ProviderSelection(withoutHeightmaps, true);
+        }
+
+        return new ProviderSelection(provider, false);
+    }
+
+    private boolean hasValidChunkSizeAfterHeightmaps(DataTypeProvider provider) {
+        try {
+            provider.readNbtTag();
+            int size = provider.readVarInt();
+            return isValidChunkSize(size, provider);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private boolean isValidChunkSize(int size, DataTypeProvider provider) {
+        return size >= 0 && size <= provider.remaining();
+    }
+
+    private record ProviderSelection(DataTypeProvider provider, boolean skipHeightMaps) {}
+
+    private void logChunkPacketState(String label, DataTypeProvider provider) {
+        DataTypeProvider peek = provider.copyAtPosition();
+        int peekCount = Math.min(16, peek.remaining());
+        byte[] bytes = peek.readByteArray(peekCount);
+
+        System.out.println(
+            "Chunk packet " + label +
+                " pos=" + provider.position() +
+                " remaining=" + provider.remaining() +
+                " length=" + provider.length() +
+                " next=" + toHex(bytes)
+        );
+    }
+
+    private String toHex(byte[] bytes) {
+        if (bytes.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(bytes.length * 3);
+        for (byte b : bytes) {
+            sb.append(String.format("%02x ", b));
+        }
+        return sb.toString().trim();
+    }
+
+    private String summarizeHeightmaps(SpecificTag tag) {
+        if (tag == null) {
+            return "null";
+        }
+        if (tag instanceof CompoundTag compound) {
+            StringBuilder sb = new StringBuilder("CompoundTag keys=");
+            int count = 0;
+            sb.append("[");
+            for (NamedTag named : compound) {
+                if (count > 0) {
+                    sb.append(",");
+                }
+                sb.append(named.name);
+                count++;
+                if (count >= 6) {
+                    break;
+                }
+            }
+            if (compound.iterator().hasNext() && count >= 6) {
+                sb.append(",...");
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        return tag.getClass().getSimpleName();
     }
 
     /**
@@ -113,14 +238,15 @@ public class Chunk_1_18 extends Chunk_1_17 {
             }
 
             section.setBlockCount(blockCount);
-            section.setBlocks(dataProvider.readLongArray(dataProvider.readVarInt()));
+
+            int longsExpectedBlocks = ChunkSection_1_18.longsRequired(blockPalette.getBitsPerBlock());
+            section.setBlocks(dataProvider.readLongArray(longsExpectedBlocks));
 
             Palette biomePalette = Palette.readPalette(dataProvider, PaletteType.BIOMES);
             section.setBiomePalette(biomePalette);
 
-            // check how many longs we expect, if there's more discard the rest
             int longsExpectedBiomes = ChunkSection_1_18.longsRequiredBiomes(biomePalette.getBitsPerBlock());
-            section.setBiomes(dataProvider.readLongArray(dataProvider.readVarInt(), longsExpectedBiomes));
+            section.setBiomes(dataProvider.readLongArray(longsExpectedBiomes));
 
             // May replace an existing section or a null one
             setChunkSection(sectionY, section);

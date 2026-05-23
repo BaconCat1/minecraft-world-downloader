@@ -43,7 +43,7 @@ public class RealmsApiHandler extends ClientAuthenticator {
                 .asStringAsync(res -> {
                     if (!res.isSuccess()) {
                         if (reportErrors || (res.getStatus() >= 400 && res.getStatus() < 500)) {
-                            new RealmsRequestException(res.getStatus() + " - " + res.getStatusText() + " (body: " + res.getBody() + ")").printStackTrace();
+                            new RealmsRequestException(res.getStatus() + " - " + res.getStatusText()).printStackTrace();
                         }
                         attempt(() -> callback.accept(""));
                     } else {

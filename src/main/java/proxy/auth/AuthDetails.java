@@ -13,7 +13,7 @@ public class AuthDetails {
     private static final String ACCESSTOKEN_URL = "https://api.minecraftservices.com/minecraft/profile";
     public final static AuthDetails INVALID = new AuthDetails();
 
-    private String accessToken;
+    private transient String accessToken;
     private String uuid;
     private String name;
     private transient boolean isOutdated;
@@ -129,7 +129,7 @@ public class AuthDetails {
         return "AuthDetails{" +
                 "uuid='" + uuid + '\'' +
                 ", name='" + name + '\'' +
-                ", accessToken='" + accessToken +
+                ", accessToken='<redacted>'" +
                 '}';
     }
 

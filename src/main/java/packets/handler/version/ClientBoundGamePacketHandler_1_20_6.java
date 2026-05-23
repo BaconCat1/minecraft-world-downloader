@@ -75,10 +75,29 @@ public class ClientBoundGamePacketHandler_1_20_6 extends ClientBoundGamePacketHa
 
     private void commonInfo(DataTypeProvider provider, PacketBuilder replacement) {
         // handle dimension codec
+        world = WorldManager.getInstance();
+
+        if (Config.versionReporter().isAtLeast(config.Version.V1_21_11)) {
+            // Prismarine 1.21.11 SpawnInfo:
+            // dimension: varint
+            // name: string
+            int dimensionType = provider.readVarInt();
+            String dimensionName = provider.readString();
+
+            world.setDimension(world.getDimensionRegistry().getDimension(dimensionName));
+            world.setDimensionType(world.getDimensionRegistry().getDimensionType(dimensionType));
+
+            if (replacement != null) {
+                replacement.writeVarInt(dimensionType);
+                replacement.writeString(dimensionName);
+                replacement.copyRemainder(provider);
+            }
+            return;
+        }
+
         int dimensionType = provider.readVarInt();
         String dimensionName = provider.readString();
 
-        world = WorldManager.getInstance();
         world.setDimension(world.getDimensionRegistry().getDimension(dimensionName));
         world.setDimensionType(world.getDimensionRegistry().getDimensionType(dimensionType));
 

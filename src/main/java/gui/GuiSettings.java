@@ -88,12 +88,13 @@ public class GuiSettings {
 
     public GuiSettings() {
         this.config = GuiManager.getConfig();
-        GuiManager.getStage().setResizable(false);
-        GuiManager.registerSettingController(this);
     }
 
     @FXML
     void initialize() {
+        GuiManager.getStage().setResizable(false);
+        GuiManager.registerSettingController(this);
+
         if (config.isStarted()) {
             saveButton.setText("Save");
         }
@@ -366,8 +367,28 @@ public class GuiSettings {
 
         attempt(() -> {
             authServer = new MicrosoftAuthServer(onStart, (authCode, usedPort) -> Platform.runLater(() -> {
-                Config.setMicrosoftAuth(MicrosoftAuthHandler.fromCode(authCode, usedPort));
-                authServer = null;
+                MicrosoftAuthHandler previousHandler = Config.getMicrosoftAuth();
+                try {
+                    MicrosoftAuthHandler handler = MicrosoftAuthHandler.fromCode(authCode, usedPort);
+                    MicrosoftAuthDialogs.SaveChoice saveChoice = MicrosoftAuthDialogs.promptToPersistLogin();
+                    if (saveChoice.save()) {
+                        handler.saveSession(saveChoice.password());
+                    } else {
+                        handler.clearSavedSession();
+                    }
+
+                    Config.setMicrosoftAuth(handler);
+                    Config.save();
+                } catch (Exception ex) {
+                    Config.setMicrosoftAuth(previousHandler);
+                    Config.save();
+                    GuiManager.setAuthenticationFailed();
+                    authResult.setText("Microsoft login failed: " + ex.getMessage());
+                    authResult.getStyleClass().add("label-err");
+                    return;
+                } finally {
+                    authServer = null;
+                }
 
                 validateAuth();
             }));
@@ -375,6 +396,19 @@ public class GuiSettings {
     }
 
     private void validateAuth() {
+        if (Config.getAuthMethod() == AuthenticationMethod.MICROSOFT) {
+            MicrosoftAuthHandler handler = Config.getMicrosoftAuth();
+            if (handler != null && handler.needsPassword()) {
+                String error = MicrosoftAuthDialogs.unlockSavedLogin(handler);
+                if (error != null) {
+                    authResult.setText(error);
+                    authResult.getStyleClass().add("label-err");
+                    return;
+                }
+                Config.save();
+            }
+        }
+
         AuthDetailsManager.validateAuthStatus(username -> {
             authResult.setText("Username: " + username);
             authResult.getStyleClass().remove("label-err");

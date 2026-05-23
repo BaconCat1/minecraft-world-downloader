@@ -84,13 +84,13 @@ public class EntityRegistry {
 
     public void updatePlayerAction(DataTypeProvider provider) {
         executor.execute(() -> attempt(() -> {
-            byte actions = provider.readNext();
+            int actions = provider.readVarInt();
             int playerCnt = provider.readVarInt();
 
             for (int i = 0; i < playerCnt; i++) {
                 UUID uuid = provider.readUUID();
 
-                if ((actions & 0x01) > 0) {
+                if ((actions & 0x01) != 0) {
                     PlayerEntity player = new PlayerEntity(uuid);
                     players.put(uuid, player);
 
@@ -104,7 +104,7 @@ public class EntityRegistry {
                     }
                 }
 
-                if ((actions & 0x02) > 0) {
+                if ((actions & 0x02) != 0) {
                     boolean signature = provider.readBoolean();
                     if (signature) {
                         provider.readUUID();
@@ -116,24 +116,41 @@ public class EntityRegistry {
                     }
                 }
 
-                if ((actions & 0x04) > 0) {
+                if ((actions & 0x04) != 0) {
                     provider.readVarInt();
                 }
 
-                if ((actions & 0x08) > 0) {
+                if ((actions & 0x08) != 0) {
                     provider.readBoolean();
                 }
 
-                if ((actions & 0x10) > 0) {
+                if ((actions & 0x10) != 0) {
                     provider.readVarInt();
                 }
 
-                if ((actions & 0x20) > 0) {
+                if ((actions & 0x20) != 0) {
                     boolean displayName = provider.readBoolean();
                     if (displayName) {
                         provider.readChat();
                     }
                 }
+
+                if ((actions & 0x40) != 0) {
+                    provider.readVarInt();
+                }
+
+                if ((actions & 0x80) != 0) {
+                    provider.readBoolean();
+                }
+            }
+        }));
+    }
+
+    public void removePlayers(DataTypeProvider provider) {
+        executor.execute(() -> attempt(() -> {
+            int playerCnt = provider.readVarInt();
+            for (int i = 0; i < playerCnt; i++) {
+                players.remove(provider.readUUID());
             }
         }));
     }
@@ -173,6 +190,9 @@ public class EntityRegistry {
     public void updatePositionRelative(DataTypeProvider provider) {
         this.executor.execute(() -> attempt(() -> {
             IMovableEntity ent = getMovableEntity(provider.readVarInt());
+            if (provider.remaining() < 6) {
+                return;
+            }
 
             if (ent != null) {
                 ent.incrementPosition(provider.readShort(), provider.readShort(), provider.readShort());

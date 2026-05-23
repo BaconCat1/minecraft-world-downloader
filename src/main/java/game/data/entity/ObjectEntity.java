@@ -19,6 +19,21 @@ public class ObjectEntity extends Entity {
 
         if (ent == null) { return null; }
 
+        if (Config.versionReporter().isAtLeast(Version.V1_21_11)) {
+            ent.readPosition(provider);
+            provider.readPackedVector3();
+            ent.pitch = provider.readNext();
+            ent.yaw = provider.readNext();
+            int data;
+            provider.readNext(); // head rotation
+            data = provider.readVarInt();
+
+            if (ent instanceof ObjectEntity) {
+                ((ObjectEntity) ent).setData(data);
+            }
+            return ent;
+        }
+
         ent.readPosition(provider);
         ent.pitch = provider.readNext();
         ent.yaw = provider.readNext();

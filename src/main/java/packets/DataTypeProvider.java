@@ -51,8 +51,12 @@ public class DataTypeProvider {
         return new String(out);
     }
     public DataTypeProvider(byte[] finalFullPacket) {
+        this(finalFullPacket, 0);
+    }
+
+    private DataTypeProvider(byte[] finalFullPacket, int pos) {
         this.finalFullPacket = finalFullPacket;
-        this.pos = 0;
+        this.pos = pos;
     }
 
     public static DataTypeProvider ofPacket(byte[] finalFullPacket) {
@@ -107,6 +111,12 @@ public class DataTypeProvider {
     }
 
     public byte[] readByteArray(int size) {
+        if (size < 0 || pos + size > finalFullPacket.length) {
+            throw new RuntimeException(
+                "Tried to read " + size + " bytes at position " + pos
+                    + " from packet with length " + finalFullPacket.length
+            );
+        }
         byte[] res = new byte[size];
 
         System.arraycopy(finalFullPacket, pos, res, 0, size);
@@ -311,8 +321,29 @@ public class DataTypeProvider {
         return new CoordinateDouble3D(readDouble(), readDouble(), readDouble());
     }
 
+    public void readPackedVector3() {
+        int flags = readNext() & 0xFF;
+        if (flags == 0) {
+            return;
+        }
+
+        readNext();
+        readInt();
+        if ((flags & 0b100) != 0) {
+            readVarInt();
+        }
+    }
+
+    public byte[] readPrefixedByteArray() {
+        return readByteArray(readVarInt());
+    }
+
     public DataTypeProvider copy() {
         return new DataTypeProvider(Arrays.copyOf(this.finalFullPacket, this.finalFullPacket.length));
+    }
+
+    public DataTypeProvider copyAtPosition() {
+        return new DataTypeProvider(Arrays.copyOf(this.finalFullPacket, this.finalFullPacket.length), this.pos);
     }
 
     public record Registry(String name, List<RegistryEntry> entries) {}
@@ -341,6 +372,14 @@ public class DataTypeProvider {
 
     public int remaining() {
         return this.finalFullPacket.length - pos;
+    }
+
+    public int position() {
+        return pos;
+    }
+
+    public int length() {
+        return finalFullPacket.length;
     }
 
     @Override

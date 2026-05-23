@@ -9,6 +9,7 @@ import game.data.coordinates.Coordinate3D;
 import game.data.coordinates.CoordinateDim2D;
 import game.data.WorldManager;
 import packets.DataTypeProvider;
+import se.llbit.nbt.CompoundTag;
 import se.llbit.nbt.NamedTag;
 import se.llbit.nbt.SpecificTag;
 
@@ -85,6 +86,7 @@ public class ChunkFactory {
         }
 
         Runnable r = () -> {
+            // 1.21.11 chunk debugging disabled after confirming map-based heightmaps.
             CoordinateDim2D chunkPos = new CoordinateDim2D(provider.readInt(), provider.readInt(), WorldManager.getInstance().getDimension());
             getUnparsed(chunkPos).setProvider(provider);
 
@@ -214,6 +216,176 @@ public class ChunkFactory {
 
     public int countQueuedChunks() {
         return executor.getQueue().size();
+    }
+
+    private void logChunkPacket(DataTypeProvider provider) {
+        System.out.println("Chunk packet provider=" + provider.getClass().getSimpleName());
+
+        DataTypeProvider startPeek = provider.copyAtPosition();
+        int startPos = startPeek.position();
+        int startRemaining = startPeek.remaining();
+        byte[] startBytes = startPeek.readByteArray(Math.min(16, startRemaining));
+
+        DataTypeProvider coordPeek = provider.copyAtPosition();
+        int chunkX = coordPeek.readInt();
+        int chunkZ = coordPeek.readInt();
+
+        System.out.println(
+            "Chunk packet peek start pos=" + startPos +
+                " remaining=" + startRemaining +
+                " length=" + startPeek.length() +
+                " next=" + toHex(startBytes)
+        );
+        System.out.println("Chunk packet coords x=" + chunkX + " z=" + chunkZ);
+
+        logChunkPacketCandidates(provider, 9, 512);
+
+        DataTypeProvider heightPeek = provider.copyAtPosition();
+        heightPeek.readInt();
+        heightPeek.readInt();
+        int heightStartPos = heightPeek.position();
+        SpecificTag heightmaps = heightPeek.readNbtTag();
+        int heightEndPos = heightPeek.position();
+        int sizeAfterHeightmaps = heightPeek.readVarInt();
+        int remainingAfterHeightmaps = heightPeek.remaining();
+        DataTypeProvider dataPeek = heightPeek.copyAtPosition();
+        byte[] dataBytes = dataPeek.readByteArray(Math.min(16, dataPeek.remaining()));
+        String heightmapsSummary = summarizeHeightmaps(heightmaps);
+
+        System.out.println(
+            "Chunk packet heightmaps pos=" + heightStartPos +
+                " end=" + heightEndPos +
+                " size=" + sizeAfterHeightmaps +
+                " remaining=" + remainingAfterHeightmaps +
+                " ok=" + (sizeAfterHeightmaps >= 0 && sizeAfterHeightmaps <= remainingAfterHeightmaps) +
+                " tag=" + heightmapsSummary
+        );
+        System.out.println(
+            "Chunk packet data peek after heightmaps next=" + toHex(dataBytes)
+        );
+
+        DataTypeProvider alt = provider.copyAtPosition();
+        alt.readInt();
+        alt.readInt();
+        int sizeWithoutHeightmaps = alt.readVarInt();
+        int remainingWithoutHeightmaps = alt.remaining();
+        DataTypeProvider altDataPeek = alt.copyAtPosition();
+        byte[] altDataBytes = altDataPeek.readByteArray(Math.min(16, altDataPeek.remaining()));
+
+        System.out.println(
+            "Chunk packet alt size=" + sizeWithoutHeightmaps +
+                " remaining=" + remainingWithoutHeightmaps +
+                " ok=" + (sizeWithoutHeightmaps >= 0 && sizeWithoutHeightmaps <= remainingWithoutHeightmaps)
+        );
+        System.out.println(
+            "Chunk packet alt data peek next=" + toHex(altDataBytes)
+        );
+    }
+
+    private String toHex(byte[] bytes) {
+        if (bytes.length == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(bytes.length * 3);
+        for (byte b : bytes) {
+            sb.append(String.format("%02x ", b));
+        }
+        return sb.toString().trim();
+    }
+
+    private String summarizeHeightmaps(SpecificTag tag) {
+        if (tag == null) {
+            return "null";
+        }
+        if (tag instanceof CompoundTag compound) {
+            StringBuilder sb = new StringBuilder("CompoundTag keys=");
+            int count = 0;
+            sb.append("[");
+            for (NamedTag named : compound) {
+                if (count > 0) {
+                    sb.append(",");
+                }
+                sb.append(named.name);
+                count++;
+                if (count >= 6) {
+                    break;
+                }
+            }
+            if (compound.iterator().hasNext() && count >= 6) {
+                sb.append(",...");
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        return tag.getClass().getSimpleName();
+    }
+
+    private void logChunkPacketCandidates(DataTypeProvider provider, int offsetFromStart, int scanLimit) {
+        DataTypeProvider scan = provider.copyAtPosition();
+        int basePos = scan.position();
+        scan.skip(Math.max(0, offsetFromStart - basePos));
+
+        int max = Math.min(scanLimit, scan.remaining());
+        byte[] window = scan.readByteArray(max);
+
+        int nbtPos = findNbtHeader(window);
+        if (nbtPos >= 0) {
+            System.out.println("Chunk packet NBT header at offset=" + (offsetFromStart + nbtPos));
+        } else {
+            System.out.println("Chunk packet NBT header not found in first " + max + " bytes");
+        }
+
+        int[] candidates = findVarIntLengthCandidates(window, 8, 1024);
+        if (candidates.length == 0) {
+            System.out.println("Chunk packet VarInt length candidates: none");
+        } else {
+            StringBuilder sb = new StringBuilder("Chunk packet VarInt length candidates: ");
+            for (int i = 0; i < candidates.length; i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append(candidates[i]);
+            }
+            System.out.println(sb.toString());
+        }
+    }
+
+    private int findNbtHeader(byte[] data) {
+        for (int i = 0; i + 2 < data.length; i++) {
+            if ((data[i] & 0xFF) == 0x0A && data[i + 1] == 0x00 && data[i + 2] == 0x00) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private int[] findVarIntLengthCandidates(byte[] data, int maxCandidates, int minValue) {
+        int[] result = new int[maxCandidates];
+        int found = 0;
+
+        for (int i = 0; i < data.length && found < maxCandidates; i++) {
+            int numRead = 0;
+            int value = 0;
+            int cursor = i;
+            while (cursor < data.length && numRead < 5) {
+                int read = data[cursor++] & 0xFF;
+                value |= (read & 0x7F) << (7 * numRead);
+                numRead++;
+                if ((read & 0x80) == 0) {
+                    if (value >= minValue) {
+                        result[found++] = i;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (found == result.length) {
+            return result;
+        }
+        int[] trimmed = new int[found];
+        System.arraycopy(result, 0, trimmed, 0, found);
+        return trimmed;
     }
 }
 

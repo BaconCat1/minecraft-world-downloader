@@ -46,6 +46,12 @@ public class AuthTabController {
 
     @FXML
     public void initialize() {
+        manualDetails = Config.getManualAuthDetails();
+        if (manualDetails == null) {
+            manualDetails = new AuthDetails("");
+            Config.setManualAuthDetails(manualDetails);
+        }
+
         infoLink.setOnAction(actionEvent -> GuiManager.openWebLink("https://github.com/mircokroon/minecraft-world-downloader/wiki/Authentication"));
 
         accessToken.textProperty().addListener((ov, oldV, newV) -> {
@@ -53,9 +59,14 @@ public class AuthTabController {
             String newToken = newV.trim()
                 .replaceAll("[^A-Za-z0-9\\-_.]*", "")
                 .replaceFirst("accessToken", "");
-            accessToken.setText(newToken);
+            if (!newToken.equals(newV)) {
+                accessToken.setText(newToken);
+                return;
+            }
 
-            manualDetails.setAccessToken(newToken);
+            if (manualDetails != null) {
+                manualDetails.setAccessToken(newToken);
+            }
         });
 
         ToggleGroup group = new ToggleGroup();
@@ -89,6 +100,11 @@ public class AuthTabController {
     }
 
     public void checkButtonPressed(ActionEvent actionEvent) {
+        if (!unlockMicrosoftLoginIfNeeded()) {
+            clearAuthenticationStatus();
+            return;
+        }
+
         AuthDetailsManager.validateAuthStatus(username -> setStatusText("Valid session found! \n\nUsername: " + username), this::setStatusError);
 
         clearAuthenticationStatus();
@@ -144,10 +160,29 @@ public class AuthTabController {
 
         attempt(() -> {
             authServer = new MicrosoftAuthServer(onStart, (authCode, usedPort) -> Platform.runLater(() -> {
-                Config.setMicrosoftAuth(MicrosoftAuthHandler.fromCode(authCode, usedPort));
+                MicrosoftAuthHandler previousHandler = Config.getMicrosoftAuth();
+                try {
+                    MicrosoftAuthHandler handler = MicrosoftAuthHandler.fromCode(authCode, usedPort);
+                    MicrosoftAuthDialogs.SaveChoice saveChoice = MicrosoftAuthDialogs.promptToPersistLogin();
+                    if (saveChoice.save()) {
+                        handler.saveSession(saveChoice.password());
+                    } else {
+                        handler.clearSavedSession();
+                    }
 
-                authServer = null;
-                this.showAuthPane();
+                    Config.setMicrosoftAuth(handler);
+                    Config.save();
+                    clearAuthenticationStatus();
+                    setStatusText("Microsoft login successful.");
+                } catch (Exception ex) {
+                    Config.setMicrosoftAuth(previousHandler);
+                    Config.save();
+                    setStatusError(ex.getMessage());
+                    GuiManager.setAuthenticationFailed();
+                } finally {
+                    authServer = null;
+                    this.showAuthPane();
+                }
             }));
         });
     }
@@ -169,7 +204,13 @@ public class AuthTabController {
             MicrosoftAuthHandler handler = Config.getMicrosoftAuth();
 
             if (handler != null && handler.hasLoggedIn()) {
-               setStatusText("Microsoft login session present.");
+                if (handler.needsPassword()) {
+                    setStatusText("Saved Microsoft login present. Unlock it to validate or use it.");
+                } else if (handler.hasSavedSession() && !handler.isSavedSessionEncrypted()) {
+                    setStatusText("Saved Microsoft login present.");
+                } else {
+                    setStatusText("Microsoft login session present.");
+                }
             } else {
                 setStatusError(method.getErrorMessage());
             }
@@ -183,12 +224,27 @@ public class AuthTabController {
 
         if (method == AuthenticationMethod.MANUAL) {
             manualAuthPane.setVisible(true);
-
-            if (manualDetails == null) {
-                manualDetails = new AuthDetails("");
-                Config.setManualAuthDetails(manualDetails);
-            }
             accessToken.setText(manualDetails.getAccessToken());
         }
+    }
+
+    private boolean unlockMicrosoftLoginIfNeeded() {
+        if (Config.getAuthMethod() != AuthenticationMethod.MICROSOFT) {
+            return true;
+        }
+
+        MicrosoftAuthHandler handler = Config.getMicrosoftAuth();
+        if (handler == null || !handler.needsPassword()) {
+            return true;
+        }
+
+        String error = MicrosoftAuthDialogs.unlockSavedLogin(handler);
+        if (error != null) {
+            setStatusError(error);
+            return false;
+        }
+
+        Config.save();
+        return true;
     }
 }

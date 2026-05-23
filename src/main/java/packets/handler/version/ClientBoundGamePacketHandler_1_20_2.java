@@ -65,5 +65,19 @@ public class ClientBoundGamePacketHandler_1_20_2 extends ClientBoundGamePacketHa
             entityRegistry.updatePlayerAction(provider);
             return true;
         });
+
+        operators.put("PlayerInfoRemove", provider -> {
+            entityRegistry.removePlayers(provider);
+            return true;
+        });
+
+        operators.put("OpenScreen", provider -> {
+            int windowId = provider.readNext();
+            int windowType = provider.readVarInt();
+            String windowTitle = provider.readChat();
+
+            WorldManager.getInstance().getContainerManager().openWindow(windowId, windowType, windowTitle);
+            return true;
+        });
     }
 }

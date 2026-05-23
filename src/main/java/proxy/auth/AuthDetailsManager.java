@@ -25,10 +25,14 @@ public abstract class AuthDetailsManager {
 
     private static AuthDetails retrieveDetailsFromMicrosoft() {
         MicrosoftAuthHandler msAuth = Config.getMicrosoftAuth();
-        if (msAuth == null) {
+        if (msAuth == null || !msAuth.hasLoggedIn()) {
             return AuthDetails.INVALID;
         }
-        return msAuth.getAuthDetails();
+        try {
+            return msAuth.getAuthDetails();
+        } catch (RuntimeException ex) {
+            return AuthDetails.INVALID;
+        }
     }
 
     /**
@@ -56,7 +60,7 @@ public abstract class AuthDetailsManager {
                 AuthenticationMethod method = Config.getAuthMethod();
                 onError.accept(method.getErrorMessage());
             }
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             onError.accept("Exception occurred: " + e.getMessage());
         }
     }
