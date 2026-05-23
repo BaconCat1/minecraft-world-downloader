@@ -1,14 +1,10 @@
 # minecraft-world-downloader
 A Minecraft world downloader that works as a proxy server between the client and the server to read & save chunk data. Download multiplayer worlds by connecting to them and walking around. Chunks can be sent back to the client to extend the render distance.
 
-
-### Downloads  <a href="https://github.com/mircokroon/minecraft-world-downloader/releases/latest"><img align="right" src="https://img.shields.io/github/downloads/mircokroon/minecraft-world-downloader/total.svg"></a>
-Windows launcher: [world-downloader-launcher.exe](https://github.com/mircokroon/minecraft-world-downloader-launcher/releases/latest/download/world-downloader-launcher.exe)
+Now updated to 1.21.11!
+Currently prebuilt binaries are not availaible and you will need to build from source. Fortunately this is pretty easy and you can find instructions below. 
 
 Latest cross-platform jar (command-line support): [world-downloader.jar](https://github.com/mircokroon/minecraft-world-downloader/releases/latest/download/world-downloader.jar)
-
-### Basic usage
-[Download](https://github.com/mircokroon/minecraft-world-downloader-launcher/releases/latest/download/world-downloader-launcher.exe) the latest release and run it. Enter the server address in the address field and press start.
 
 <img src="https://i.imgur.com/yH8SH5C.png">
 
@@ -99,10 +95,9 @@ java -Djdk.gtk.version=2 -jar world-downloader.jar
 <details>
   <summary>Contact information</summary>
 
-  For problems, bugs, feature requests and questions about how to use the application, please [open an issue](https://github.com/mircokroon/minecraft-world-downloader/issues/new/choose) or discussion on GitHub. 
+  For problems, bugs, feature requests and questions about how to use the application, please DM bacon_cat_ on Discord.
 
-  For other inquiries, email: mircokroon.github@gmail.com
-  
-  If you want to support this project, you can [donate through GitHub](https://github.com/sponsors/mircokroon?frequency=one-time&amount=5)
+
+  If you want to support this project, you can [Buy me a Coffee!!!](https://buymeacoffee.com/refinedvanilla)
 </details>
 
