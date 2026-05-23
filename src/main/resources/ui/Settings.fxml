@@ -148,7 +148,7 @@
                     </AnchorPane>
 
                     <Label text="Level seed" GridPane.rowIndex="1" />
-                    <LongField fx:id="levelSeed" layoutX="10.0" layoutY="98.0" prefHeight="25.0" prefWidth="93.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                    <TextField fx:id="levelSeed" layoutX="10.0" layoutY="98.0" prefHeight="25.0" prefWidth="93.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
                     <CheckBox fx:id="disableWorldGen" GridPane.columnIndex="1" GridPane.rowIndex="3" />
                     <Label text="Prevent chunk generation" GridPane.rowIndex="3" />

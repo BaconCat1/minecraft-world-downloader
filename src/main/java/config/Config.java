@@ -363,8 +363,8 @@ public class Config {
     public int extendedRenderDistance = 0;
 
     @Option(name = "--seed",
-            usage = "Numeric level seed for output world.")
-    public long levelSeed = 0;
+            usage = "Level seed for output world. Can be a number or text. Blank uses 0.")
+    public String levelSeed = "";
 
     @Option(name = "--output", aliases = "-o",
             usage = "The world output directory. If the world already exists, it will be updated.")
@@ -447,7 +447,21 @@ public class Config {
     }
 
     public static long getLevelSeed() {
-        return instance.levelSeed;
+        return parseSeed(instance.levelSeed);
+    }
+
+    public static long parseSeed(String seed) {
+        if (seed == null || seed.trim().isEmpty()) {
+            return 0L;
+        }
+
+        String trimmed = seed.trim();
+
+        try {
+            return Long.parseLong(trimmed);
+        } catch (NumberFormatException ex) {
+            return trimmed.hashCode();
+        }
     }
 
     public static String getWorldOutputDir() {
