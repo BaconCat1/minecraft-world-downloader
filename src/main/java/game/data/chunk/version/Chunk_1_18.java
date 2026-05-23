@@ -220,6 +220,53 @@ public class Chunk_1_18 extends Chunk_1_17 {
     }
 
 
+    @Override
+    protected void writeHeightMaps(PacketBuilder packet) {
+        if (!Config.versionReporter().isAtLeast(Version.V1_21_11)) {
+            super.writeHeightMaps(packet);
+            return;
+        }
+
+        if (!(heightMap instanceof CompoundTag compound)) {
+            packet.writeVarInt(0);
+            return;
+        }
+
+        int count = 0;
+        for (NamedTag named : compound) {
+            int type = heightmapType(named.name());
+            if (type >= 0) {
+                count++;
+            }
+        }
+
+        packet.writeVarInt(count);
+        for (NamedTag named : compound) {
+            int type = heightmapType(named.name());
+            if (type < 0) {
+                continue;
+            }
+
+            long[] data = compound.get(named.name()).longArray();
+            packet.writeVarInt(type);
+            packet.writeVarInt(data.length);
+            packet.writeLongArray(data);
+        }
+    }
+
+    private int heightmapType(String name) {
+        return switch (name) {
+            case "WORLD_SURFACE_WG" -> 0;
+            case "WORLD_SURFACE" -> 1;
+            case "OCEAN_FLOOR_WG" -> 2;
+            case "OCEAN_FLOOR" -> 3;
+            case "MOTION_BLOCKING" -> 4;
+            case "MOTION_BLOCKING_NO_LEAVES" -> 5;
+            default -> -1;
+        };
+    }
+
+
     /**
      * Read a chunk column for 1.18
      */

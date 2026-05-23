@@ -1,5 +1,7 @@
 package game.data.chunk.version;
 
+import config.Config;
+import config.Version;
 import game.data.chunk.Chunk;
 import game.data.chunk.palette.DirectPalette;
 import game.data.chunk.palette.Palette;
@@ -59,12 +61,23 @@ public class ChunkSection_1_18 extends ChunkSection_1_16 {
         packet.writeShort(blockCount);
         palette.write(packet);
 
-        packet.writeVarInt(blocks.length);
-        packet.writeLongArray(blocks);
+        if (Config.versionReporter().isAtLeast(Version.V1_21_11)) {
+            // 1.21.11 PalettedContainer.write uses fixed-size long arrays.
+            packet.writeLongArray(blocks);
+        } else {
+            packet.writeVarInt(blocks.length);
+            packet.writeLongArray(blocks);
+        }
 
         biomePalette.write(packet);
-        packet.writeVarInt(biomes.length);
-        packet.writeLongArray(biomes);
+
+        if (Config.versionReporter().isAtLeast(Version.V1_21_11)) {
+            // 1.21.11 PalettedContainer.write uses fixed-size long arrays.
+            packet.writeLongArray(biomes);
+        } else {
+            packet.writeVarInt(biomes.length);
+            packet.writeLongArray(biomes);
+        }
     }
 
     public void setBiomes(long[] biomes) {
