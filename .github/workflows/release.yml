@@ -1,0 +1,85 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            profile: windows-x64
+            artifact: world-downloader-windows-x64.jar
+
+          - name: linux-x64
+            os: ubuntu-latest
+            profile: linux-x64
+            artifact: world-downloader-linux-x64.jar
+
+          - name: macos-x64
+            os: macos-13
+            profile: macos-x64
+            artifact: world-downloader-macos-x64.jar
+
+          - name: macos-arm64
+            os: macos-latest
+            profile: macos-arm64
+            artifact: world-downloader-macos-arm64.jar
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build shaded jar
+        run: mvn -B clean package -P${{ matrix.profile }} -DskipTests
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp target/world-downloader.jar dist/${{ matrix.artifact }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/${{ matrix.artifact }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List release files
+        run: ls -lah dist
+
+      - name: Create release and upload files
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.jar
+          generate_release_notes: true
