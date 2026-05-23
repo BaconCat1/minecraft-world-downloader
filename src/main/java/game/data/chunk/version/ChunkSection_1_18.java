@@ -63,7 +63,7 @@ public class ChunkSection_1_18 extends ChunkSection_1_16 {
 
         if (Config.versionReporter().isAtLeast(Version.V1_21_11)) {
             // 1.21.11 PalettedContainer.write uses fixed-size long arrays.
-            packet.writeLongArray(blocks);
+            writeFixedLongArray(packet, blocks, longsRequired(palette.getBitsPerBlock()));
         } else {
             packet.writeVarInt(blocks.length);
             packet.writeLongArray(blocks);
@@ -73,10 +73,22 @@ public class ChunkSection_1_18 extends ChunkSection_1_16 {
 
         if (Config.versionReporter().isAtLeast(Version.V1_21_11)) {
             // 1.21.11 PalettedContainer.write uses fixed-size long arrays.
-            packet.writeLongArray(biomes);
+            writeFixedLongArray(packet, biomes, longsRequiredBiomes(biomePalette.getBitsPerBlock()));
         } else {
             packet.writeVarInt(biomes.length);
             packet.writeLongArray(biomes);
+        }
+    }
+
+    private void writeFixedLongArray(PacketBuilder packet, long[] data, int expectedLength) {
+        int dataLength = data == null ? 0 : data.length;
+        int copiedLength = Math.min(dataLength, expectedLength);
+
+        for (int i = 0; i < copiedLength; i++) {
+            packet.writeLong(data[i]);
+        }
+        for (int i = copiedLength; i < expectedLength; i++) {
+            packet.writeLong(0L);
         }
     }
 

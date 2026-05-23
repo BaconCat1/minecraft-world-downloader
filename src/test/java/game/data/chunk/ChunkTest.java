@@ -78,6 +78,48 @@ class ChunkTest extends PacketBuilderAndParserTest {
         Chunk_1_17.setWorldHeight(0, 256);
     }
 
+    private void testCanParsePacketFor(int protocolVersion, String dataFile) throws IOException, ClassNotFoundException {
+        WorldManager mock = mock(WorldManager.class);
+        when(mock.getBlockColors()).thenReturn(mock(BlockColors.class));
+        when(mock.getChunkFactory()).thenReturn(new ChunkFactory());
+
+        Chunk_1_17.setWorldHeight(-63, 384);
+        DimensionRegistry codecMock = mock(DimensionRegistry.class);
+        Map<String, Biome> biomeMap = new HashMap<>();
+        biomeMap.put("minecraft:badlands", new Biome(0));
+        biomeMap.put("minecraft:forest", new Biome(1));
+        biomeMap.put("minecraft:river", new Biome(2));
+        biomeMap.put("minecraft:plains", new Biome(3));
+        when(codecMock.getBiomeRegistry()).thenReturn(new BiomeRegistry(biomeMap));
+        when(mock.getDimensionRegistry()).thenReturn(codecMock);
+
+        RegistryManager registryManager = mock(RegistryManager.class);
+        when(registryManager.getBlockEntityRegistry()).thenReturn(new BlockEntityRegistry());
+        RegistryManager.setInstance(registryManager);
+
+        WorldManager.setInstance(mock);
+
+        Config.setInstance(new Config());
+        Config.setProtocolVersion(protocolVersion);
+
+        ObjectInputStream in = new ObjectInputStream(ChunkTest.class.getClassLoader().getResourceAsStream(dataFile));
+        cb = (ChunkBinary) in.readObject();
+
+        Chunk c = cb.toChunk(pos);
+
+        builder = c.toPacket();
+
+        DataTypeProvider parser = getParser();
+        CoordinateDim2D coords = new CoordinateDim2D(parser.readInt(), parser.readInt(), pos.getDimension());
+        UnparsedChunk up = new UnparsedChunk(coords);
+        up.provider = parser;
+
+        assertThat(ChunkFactory.parseChunk(up, mock)).isNotNull();
+        assertThat(parser.hasNext()).isFalse();
+
+        Chunk_1_17.setWorldHeight(0, 256);
+    }
+
     /**
      * Tests that reading in binary chunk data (as stored in MCA Files), writing it to a network packet and parsing the
      * network packet leads to the same block states. Note that this does not ensure that the client is necessarily able
@@ -189,5 +231,10 @@ class ChunkTest extends PacketBuilderAndParserTest {
     @Test
     void chunk_1_21() throws IOException, ClassNotFoundException {
         testFor(Version.V1_21.protocolVersion, "chunkdata_1_21");
+    }
+
+    @Test
+    void chunk_1_21_11() throws IOException, ClassNotFoundException {
+        testCanParsePacketFor(Version.V1_21_11.protocolVersion, "chunkdata_1_21");
     }
 }
