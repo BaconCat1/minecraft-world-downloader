@@ -4,7 +4,7 @@ A Minecraft world downloader that works as a proxy server between the client and
 Now updated to 1.21.11!
 Currently prebuilt binaries are not availaible and you will need to build from source. Fortunately this is pretty easy and you can find instructions below. 
 
-Latest cross-platform jar (command-line support): [world-downloader.jar](https://github.com/BaconCat__/minecraft-world-downloader/releases/latest/download/world-downloader.jar)
+Latest jar (command-line support): [world-downloader.jar](https://github.com/BaconCat__/minecraft-world-downloader/releases/latest/)
 
 <img src="https://i.imgur.com/yH8SH5C.png">
 
