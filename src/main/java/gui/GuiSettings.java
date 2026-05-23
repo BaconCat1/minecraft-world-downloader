@@ -7,7 +7,6 @@ import static util.ExceptionHandling.attemptQuiet;
 import config.Config;
 import gui.components.DefaultIntField;
 import gui.components.IntField;
-import gui.components.LongField;
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -50,7 +49,7 @@ public class GuiSettings {
     public TextField worldOutputDir;
     public IntField centerX;
     public IntField centerZ;
-    public LongField levelSeed;
+    public TextField levelSeed;
 
     public CheckBox markUnsaved;
     public CheckBox markOld;
@@ -112,7 +111,7 @@ public class GuiSettings {
         worldOutputDir.setText(config.worldOutputDir);
         centerX.setValue(config.centerX);
         centerZ.setValue(config.centerZ);
-        levelSeed.setLongValue(config.levelSeed);
+        levelSeed.setText(config.levelSeed == null ? "" : config.levelSeed);
         disableWorldGen.setSelected(config.disableWorldGen);
 
         // general tab
@@ -145,7 +144,7 @@ public class GuiSettings {
                 }
             });
         }
-        disableWhenRunning(Arrays.asList(server, portLocal, centerX, centerZ, worldOutputDir));
+        disableWhenRunning(Arrays.asList(server, portLocal, levelSeed, centerX, centerZ, worldOutputDir));
 
         GuiManager.bindTooltip(portVerifyLabel, new Tooltip("Is the downloader already running?"));
 
@@ -315,7 +314,7 @@ public class GuiSettings {
         config.worldOutputDir = worldOutputDir.getText();
         config.centerX = centerX.getAsInt();
         config.centerZ = centerZ.getAsInt();
-        config.levelSeed = levelSeed.getAsLong();
+        config.levelSeed = levelSeed.getText() == null ? "" : levelSeed.getText().trim();
         config.disableWorldGen = disableWorldGen.isSelected();
 
         // general tab

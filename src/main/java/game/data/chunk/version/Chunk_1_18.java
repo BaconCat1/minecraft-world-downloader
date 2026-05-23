@@ -286,14 +286,12 @@ public class Chunk_1_18 extends Chunk_1_17 {
 
             section.setBlockCount(blockCount);
 
-            int longsExpectedBlocks = ChunkSection_1_18.longsRequired(blockPalette.getBitsPerBlock());
-            section.setBlocks(dataProvider.readLongArray(longsExpectedBlocks));
+            section.setBlocks(readPalettedContainerData(dataProvider, blockPalette, PaletteType.BLOCKS));
 
             Palette biomePalette = Palette.readPalette(dataProvider, PaletteType.BIOMES);
             section.setBiomePalette(biomePalette);
 
-            int longsExpectedBiomes = ChunkSection_1_18.longsRequiredBiomes(biomePalette.getBitsPerBlock());
-            section.setBiomes(dataProvider.readLongArray(longsExpectedBiomes));
+            section.setBiomes(readPalettedContainerData(dataProvider, biomePalette, PaletteType.BIOMES));
 
             // May replace an existing section or a null one
             setChunkSection(sectionY, section);
@@ -304,6 +302,18 @@ public class Chunk_1_18 extends Chunk_1_17 {
                 findBlockEntities(section, sectionY);
             }
         }
+    }
+
+    private long[] readPalettedContainerData(DataTypeProvider dataProvider, Palette palette, PaletteType type) {
+        int longsExpected = type == PaletteType.BIOMES
+            ? ChunkSection_1_18.longsRequiredBiomes(palette.getBitsPerBlock())
+            : ChunkSection_1_18.longsRequired(palette.getBitsPerBlock());
+
+        if (Config.versionReporter().isAtLeast(Version.V1_21_11)) {
+            return dataProvider.readLongArray(longsExpected);
+        }
+
+        return dataProvider.readLongArray(dataProvider.readVarInt());
     }
 
     protected void findBlockEntities(ChunkSection section, int sectionY) {
