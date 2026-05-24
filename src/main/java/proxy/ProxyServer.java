@@ -20,6 +20,10 @@ public class ProxyServer extends Thread {
 
     private DataReader onServerBoundPacket;
     private DataReader onClientBoundPacket;
+    private volatile boolean running = true;
+    private ServerSocket serverSocket;
+    private Socket clientSocket;
+    private Socket remoteSocket;
 
     public ProxyServer(ConnectionManager connectionManager, ConnectionDetails connectionDetails) {
         this.connectionDetails = connectionDetails;
@@ -51,17 +55,23 @@ public class ProxyServer extends Thread {
             ex.printStackTrace();
             System.exit(1);
         });
+        serverSocket = ss.get();
+        if (!running) {
+            attempt(serverSocket::close);
+            return;
+        }
 
         final byte[] request = new byte[4096];
         final byte[] reply = new byte[4096];
 
-        while (true) {
+        while (running) {
             AtomicReference<Socket> client = new AtomicReference<>();
             AtomicReference<Socket> server = new AtomicReference<>();
 
             attempt(() -> {
                 // Wait for a connection on the local port
                 client.set(ss.get().accept());
+                clientSocket = client.get();
 
                 final InputStream streamFromClient = client.get().getInputStream();
                 final OutputStream streamToClient = client.get().getOutputStream();
@@ -72,6 +82,7 @@ public class ProxyServer extends Thread {
                     System.err.println("Cannot connect to " + friendlyHost + ". The server may be down or on a different address. (" + ex.getClass().getCanonicalName() + ")");
                     attempt(client.get()::close);
                 });
+                remoteSocket = server.get();
 
                 final InputStream streamFromServer = server.get().getInputStream();
                 final OutputStream streamToServer = server.get().getOutputStream();
@@ -89,6 +100,9 @@ public class ProxyServer extends Thread {
                         Throwable cause = ex.getCause();
                         if (cause != null) {
                             cause.printStackTrace();
+                        }
+                        if (!running) {
+                            return;
                         }
                         System.out.println("Server probably disconnected. Waiting for new connection...");
                         connectionManager.reset();
@@ -110,6 +124,9 @@ public class ProxyServer extends Thread {
                     if (cause != null) {
                         cause.printStackTrace();
                     }
+                    if (!running) {
+                        return;
+                    }
                     System.out.println("Client probably disconnected. Waiting for new connection...");
                     connectionManager.reset();
                 });
@@ -117,9 +134,17 @@ public class ProxyServer extends Thread {
                 // The server closed its connection to us, so we close our connection to our client.
                 streamToClient.close();
             }, (ex) -> {
+                if (!running) { return; }
                 if (server.get() != null) { attempt(server.get()::close); }
                 if (client.get() != null) { attempt(client.get()::close); }
             });
         }
+    }
+
+    public void stopServer() {
+        running = false;
+        if (serverSocket != null) { attempt(serverSocket::close); }
+        if (remoteSocket != null) { attempt(remoteSocket::close); }
+        if (clientSocket != null) { attempt(clientSocket::close); }
     }
 }

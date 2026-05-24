@@ -102,6 +102,7 @@ public class RightClickMenu extends ContextMenu {
 
         menu.add(new Menu("Render mode", null, renderModes.toArray(new MenuItem[0])));
         menu.add(construct("Settings", e -> GuiManager.loadWindowSettings()));
+        menu.add(construct("Return to Main Menu", e -> GuiManager.stopProxyAndReturnToSettings()));
 
         menu.add(construct("Save & Exit", e -> {
             GuiManager.saveAndExit();

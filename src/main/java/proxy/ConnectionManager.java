@@ -14,10 +14,13 @@ import packets.handler.*;
  * Class to manage the connection status.
  */
 public class ConnectionManager {
+    private static ConnectionManager activeManager;
+
     private DataReader serverBoundDataReader;
     private DataReader clientBoundDataReader;
     private EncryptionManager encryptionManager;
     private CompressionManager compressionManager;
+    private ProxyServer proxy;
 
     private NetworkMode mode = NetworkMode.STATUS;
 
@@ -61,6 +64,7 @@ public class ConnectionManager {
      * Starts the proxy.
      */
     public void startProxy() {
+        activeManager = this;
         compressionManager = new CompressionManager();
         encryptionManager = new EncryptionManager(compressionManager);
         serverBoundDataReader = DataReader.serverBound(encryptionManager);
@@ -68,10 +72,26 @@ public class ConnectionManager {
 
         setMode(NetworkMode.HANDSHAKE);
 
-        ProxyServer proxy = new ProxyServer(this, Config.getConnectionDetails());
+        proxy = new ProxyServer(this, Config.getConnectionDetails());
         proxy.runServer(serverBoundDataReader, clientBoundDataReader);
 
         Config.registerPacketInjector(this.getEncryptionManager().getPacketInjector());
+    }
+
+    public void stopProxy() {
+        if (proxy != null) {
+            proxy.stopServer();
+            proxy = null;
+        }
+        if (activeManager == this) {
+            activeManager = null;
+        }
+    }
+
+    public static void stopActiveProxy() {
+        if (activeManager != null) {
+            activeManager.stopProxy();
+        }
     }
 
     /**

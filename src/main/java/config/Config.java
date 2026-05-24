@@ -214,6 +214,13 @@ public class Config {
         new ConnectionManager().startProxy();
     }
 
+    public static void stopProxying() {
+        ConnectionManager.stopActiveProxy();
+        injector = null;
+        instance.connectionDetails = null;
+        instance.isStarted = false;
+    }
+
     private void writeSettings() {
         try {
             // clear other auth settings

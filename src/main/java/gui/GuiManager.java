@@ -37,6 +37,7 @@ public class GuiManager extends Application {
     private static ObservableList<String> messages;
 
     private static GuiMap chunkGraphicsHandler;
+    private static boolean returningToSettings;
     private static Config config;
     private static GuiManager instance;
 
@@ -322,6 +323,46 @@ public class GuiManager extends Application {
             Platform.exit();
             System.exit(0);
         });
+    }
+
+    public static void stopProxyAndReturnToSettings() {
+        if (returningToSettings) {
+            return;
+        }
+        returningToSettings = true;
+
+        GuiMap map = chunkGraphicsHandler;
+        if (map != null) {
+            map.setStatusMessage("Stopping proxy...");
+            map.shutdown();
+        }
+
+        new Thread(() -> {
+            try {
+                Config.stopProxying();
+
+                if (map != null) {
+                    map.getRegionHandler().shutdown();
+                }
+                WorldManager worldManager = WorldManager.getInstance();
+                worldManager.shutdown();
+
+                if (map != null) {
+                    map.getRegionHandler().save();
+                }
+                worldManager.save();
+                WorldManager.setInstance(null);
+            } finally {
+                Platform.runLater(() -> {
+                    closeSettings();
+                    if (chunkGraphicsHandler == map) {
+                        chunkGraphicsHandler = null;
+                    }
+                    returningToSettings = false;
+                    loadSceneSettings();
+                });
+            }
+        }, "Stop Proxy").start();
     }
 
     static void setGraphicsHandler(GuiMap map) {
