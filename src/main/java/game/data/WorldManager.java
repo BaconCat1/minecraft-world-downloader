@@ -746,9 +746,12 @@ public class WorldManager {
     }
 
     public void shutdown() {
+        renderDistanceExtender.reset();
         if (saveService != null) {
             saveService.shutdown();
+            saveService = null;
         }
+        isStarted = false;
     }
 
     public boolean canForget(CoordinateDim2D co) {
@@ -763,4 +766,3 @@ public class WorldManager {
         return isBelowGround;
     }
 }
-

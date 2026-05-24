@@ -80,6 +80,7 @@ public class GuiMap {
     private Bounds bounds;
 
     private ZoomBehaviour zoomBehaviour;
+    private AnimationTimer animationTimer;
 
     private final PlayerMarker playerMarker = new PlayerMarker();
 
@@ -103,7 +104,7 @@ public class GuiMap {
         GuiManager.getStage().setHeight(500);
         GuiManager.getStage().setWidth(700);
 
-        AnimationTimer animationTimer = new AnimationTimer() {
+        animationTimer = new AnimationTimer() {
             @Override
             public void handle(long time) {
                 zoomBehaviour.handle(time);
@@ -129,6 +130,13 @@ public class GuiMap {
         setupContextMenu();
         setupHelpLabel();
         setupDragging();
+    }
+
+    public void shutdown() {
+        if (animationTimer != null) {
+            animationTimer.stop();
+        }
+        WorldManager.getInstance().setPlayerPosListener(null);
     }
 
     private void setupHelpLabel() {
