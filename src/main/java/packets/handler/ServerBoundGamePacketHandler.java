@@ -42,6 +42,10 @@ public class ServerBoundGamePacketHandler extends PacketHandler {
 
         operations.put("MovePlayerPos", updatePlayerPosition);
         operations.put("MovePlayerRot", updatePlayerRotation);
+        operations.put("MovePlayerStatusOnly", provider -> {
+            readMovementFlags(provider);
+            return true;
+        });
         operations.put("MovePlayerPosRot", (provider) -> {
             if (provider.remaining() >= 32) {
                 double x = provider.readDouble();

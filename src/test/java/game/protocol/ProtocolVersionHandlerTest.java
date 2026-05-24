@@ -31,4 +31,15 @@ class ProtocolVersionHandlerTest {
             assertThat(pvh.getProtocolByProtocolVersion(k).getVersion()).isEqualTo(v);
         });
     }
+
+    @Test
+    void protocol774ServerBoundMovementIds() {
+        Protocol protocol = ProtocolVersionHandler.getInstance().getProtocolByProtocolVersion(774);
+
+        assertThat(protocol.get(0x1D, false)).isEqualTo("MovePlayerPos");
+        assertThat(protocol.get(0x1E, false)).isEqualTo("MovePlayerPosRot");
+        assertThat(protocol.get(0x1F, false)).isEqualTo("MovePlayerRot");
+        assertThat(protocol.get(0x20, false)).isEqualTo("MovePlayerStatusOnly");
+        assertThat(protocol.get(0x21, false)).isEqualTo("MoveVehicle");
+    }
 }

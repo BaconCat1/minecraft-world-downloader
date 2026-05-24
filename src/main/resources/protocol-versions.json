@@ -598,16 +598,17 @@
                                 "0x7B": "TeleportEntity"
                         },
                         "serverBound": {
-                                "0x10": "ConfigurationAcknowledged",
-                                "0x13": "ContainerClose",
-                                "0x1A": "Interact",
-                                "0x1E": "MovePlayerPos",
-                                "0x1F": "MovePlayerPosRot",
-                                "0x20": "MovePlayerRot",
-                                "0x22": "MoveVehicle",
-                                "0x36": "SetCommandBlock",
-                                "0x42": "UseItemOn",
-                                "0x43": "UseItem"
+                                "0x0F": "ConfigurationAcknowledged",
+                                "0x12": "ContainerClose",
+                                "0x19": "Interact",
+                                "0x1D": "MovePlayerPos",
+                                "0x1E": "MovePlayerPosRot",
+                                "0x1F": "MovePlayerRot",
+                                "0x20": "MovePlayerStatusOnly",
+                                "0x21": "MoveVehicle",
+                                "0x35": "SetCommandBlock",
+                                "0x3F": "UseItemOn",
+                                "0x40": "UseItem"
                         }
                 }
         }
