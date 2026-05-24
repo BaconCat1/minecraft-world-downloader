@@ -362,7 +362,9 @@ public class Chunk_1_18 extends Chunk_1_17 {
             if (tag instanceof CompoundTag entity) {
                 String blockEntityID = RegistryManager.getInstance().getBlockEntityRegistry().getBlockEntityName(type);
 
-                entity.add("id", new StringTag(blockEntityID));
+                if (blockEntityID != null) {
+                    entity.add("id", new StringTag(blockEntityID));
+                }
                 addBlockEntity(new Coordinate3D(x, y, z), entity);
             }
         }
