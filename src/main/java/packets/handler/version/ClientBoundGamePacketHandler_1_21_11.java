@@ -51,7 +51,10 @@ public class ClientBoundGamePacketHandler_1_21_11 extends ClientBoundGamePacketH
             SpecificTag entityData = provider.readNbtTag();
 
             if (entityData instanceof CompoundTag entity) {
-                entity.add("id", new StringTag(RegistryManager.getInstance().getBlockEntityRegistry().getBlockEntityName(type)));
+                String blockEntityName = RegistryManager.getInstance().getBlockEntityRegistry().getBlockEntityName(type);
+                if (blockEntityName != null) {
+                    entity.add("id", new StringTag(blockEntityName));
+                }
             }
             worldManager.getChunkFactory().updateTileEntity(position, entityData);
             return true;

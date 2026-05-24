@@ -1,6 +1,7 @@
 package game.data.entity.version;
 
 import game.data.container.Slot;
+import java.util.Arrays;
 import packets.DataTypeProvider;
 
 public class EquipmentReader_1_15 extends EquipmentReader {
@@ -16,6 +17,9 @@ public class EquipmentReader_1_15 extends EquipmentReader {
 
             hasNext = (slotData & 0x80) > 0;
             int slotId = (slotData & 0x7f);
+            if (slotId >= equipment.length) {
+                equipment = Arrays.copyOf(equipment, slotId + 1);
+            }
             equipment[slotId] = provider.readSlot();
         } while (hasNext);
 

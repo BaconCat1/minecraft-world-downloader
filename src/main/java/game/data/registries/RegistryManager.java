@@ -16,7 +16,13 @@ public class RegistryManager {
     private VillagerProfessionRegistry villagerProfessionRegistry;
     private VillagerTypeRegistry villagerTypeRegistry;
 
-    private RegistryManager() { }
+    private RegistryManager() {
+        this.menuRegistry = new MenuRegistry();
+        this.itemRegistry = new ItemRegistry();
+        this.blockEntityRegistry = new BlockEntityRegistry();
+        this.villagerProfessionRegistry = new VillagerProfessionRegistry();
+        this.villagerTypeRegistry = new VillagerTypeRegistry();
+    }
 
     public static void setInstance(RegistryManager registryManager) {
         instance = registryManager;
